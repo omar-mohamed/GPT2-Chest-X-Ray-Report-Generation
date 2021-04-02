@@ -1,0 +1,12 @@
+.idea/
+IU-XRay/images
+IU-XRay/reports
+models/__pycache__/
+__pycache__/
+medical_word_embeddings/pubmed2018_w2v_400D.bin
+output_captions/
+checkpoints/
+train_output_captions/
+test_output_captions/
+.vs/
+output_images/
