@@ -36,30 +36,31 @@ from tqdm import tqdm
 # attention_mask=None,
 avg_time = 0
 step_n = 1
+
+
 def evaluate_full(FLAGS, encoder, decoder, tokenizer_wrapper, images):
     global avg_time, step_n
     visual_features, tags_embeddings = encoder(images)
     dec_input = tf.expand_dims(tokenizer_wrapper.GPT2_encode("startseq", pad=False), 0)
     # dec_input = tf.tile(dec_input,[images.shape[0],1])
-    num_beams = 7
+    num_beams = FLAGS.beam_width
 
     visual_features = tf.tile(visual_features, [num_beams, 1, 1])
     tags_embeddings = tf.tile(tags_embeddings, [num_beams, 1, 1])
     start_time = time.time()
-    tokens = decoder.generate(dec_input, max_length=200, num_beams=num_beams, min_length=3,
-                              eos_token_ids= tokenizer_wrapper.GPT2_eos_token_id(), no_repeat_ngram_size=0, visual_features=visual_features,
+    tokens = decoder.generate(dec_input, max_length=FLAGS.max_sequence_length, num_beams=num_beams, min_length=3,
+                              eos_token_ids=tokenizer_wrapper.GPT2_eos_token_id(), no_repeat_ngram_size=0,
+                              visual_features=visual_features,
                               tags_embedding=tags_embeddings, do_sample=False, early_stopping=True)
-    end_time = time.time()-start_time
+    end_time = time.time() - start_time
     print(f"Step time: {end_time}")
     avg_time += end_time
-    print(f"avg Step time: {avg_time/step_n}")
+    print(f"avg Step time: {avg_time / step_n}")
 
     sentence = tokenizer_wrapper.GPT2_decode(tokens[0])
     sentence = tokenizer_wrapper.filter_special_words(sentence)
     step_n += 1
     return sentence
-
-
 
 
 def plot_attention(image, result, attention_plot):
@@ -108,7 +109,7 @@ def evaluate_enqueuer(enqueuer, steps, FLAGS, encoder, decoder, tokenizer_wrappe
     if not enqueuer.is_running():
         enqueuer.start(workers=FLAGS.generator_workers, max_queue_size=FLAGS.generator_queue_length)
     start = time.time()
-    csv_dict = {"image_path":[],"real": [], "prediction": []}
+    csv_dict = {"image_path": [], "real": [], "prediction": []}
     generator = enqueuer.get()
     for batch in tqdm(list(range(steps))):
         t = time.time()
@@ -143,7 +144,7 @@ def evaluate_enqueuer(enqueuer, steps, FLAGS, encoder, decoder, tokenizer_wrappe
     print('Time taken for evaluation {} sec\n'.format(time.time() - start))
     tf.keras.backend.set_learning_phase(1)
     df = pd.DataFrame(csv_dict)
-    df.to_csv(FLAGS.ckpt_path+"/predictions.csv", index=False)
+    df.to_csv(FLAGS.ckpt_path + "/predictions.csv", index=False)
     return scores
 
 

@@ -21,6 +21,7 @@ class TokenizerWrapper:
 
     def GPT2_pad_token_id(self):
         return self.gpt2_tokenizer.pad_token_id
+
     def GPT2_eos_token_id(self):
         return self.gpt2_tokenizer.eos_token_id
 
@@ -38,7 +39,7 @@ class TokenizerWrapper:
             sentence = sentences[i][0].lower()
             sentence = sentence.replace('"', '')
             sentence = sentence.replace('xxxx', '')
-            sentence = sentence.replace('endseq','<|endoftext|>')
+            sentence = sentence.replace('endseq', '<|endoftext|>')
             tokens[i] = self.gpt2_tokenizer.encode(sentence, add_special_tokens=True,
                                                    max_length=max_length, pad_to_max_length=pad)
         return tokens

@@ -5,6 +5,7 @@ from tensorflow.keras.utils import Sequence
 from PIL import Image
 from skimage.transform import resize
 
+
 class AugmentedImageSequence(Sequence):
     """
     Thread-safe image generator with imgaug support
@@ -12,7 +13,7 @@ class AugmentedImageSequence(Sequence):
     For more information of imgaug see: https://github.com/aleju/imgaug
     """
 
-    def __init__(self, dataset_csv_file, class_names, source_image_dir,tokenizer_wrapper, batch_size=16,
+    def __init__(self, dataset_csv_file, class_names, source_image_dir, tokenizer_wrapper, batch_size=16,
                  target_size=(224, 224), augmenter=None, verbose=0, steps=None,
                  shuffle_on_epoch_end=True, random_state=1):
         """
@@ -84,13 +85,14 @@ class AugmentedImageSequence(Sequence):
     def prepare_dataset(self):
         df = self.dataset_df.sample(frac=1., random_state=self.random_state)
         if self.augmenter is not None:
-            self.x_path, self.y = df["Image Index"].values, self.tokenizer_wrapper.GPT2_encode(df[self.class_names].values)
+            self.x_path, self.y = df["Image Index"].values, self.tokenizer_wrapper.GPT2_encode(
+                df[self.class_names].values)
         else:
-            self.x_path, self.y = df["Image Index"].values, self.tokenizer_wrapper.GPT2_encode(df[self.class_names].values
-                                                                                                    ,max_length=1000)
+            self.x_path, self.y = df["Image Index"].values, self.tokenizer_wrapper.GPT2_encode(
+                df[self.class_names].values
+                , max_length=1000)
 
     def on_epoch_end(self):
         if self.shuffle:
             self.random_state += 1
             self.prepare_dataset()
-

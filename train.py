@@ -12,6 +12,7 @@ from augmenter import augmenter
 from gpt2_dir.gpt2_model import TFGPT2LMHeadModel
 from test import evaluate_enqueuer
 import pandas as pd
+
 # tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
 
 FLAGS = argHandler()
@@ -61,7 +62,7 @@ loss_plot = []
 
 #
 @tf.function
-def train_step(images, target, test_mode = False):
+def train_step(images, target, test_mode=False):
     with tf.GradientTape() as tape:
         visual_features, tags_embeddings = encoder(images)
         dec_input = target[:, 0:-1]
@@ -99,8 +100,9 @@ def get_avg_score(scores_dict):
     avg_score = 0
     for value in scores_dict.values():
         avg_score += value
-    avg_score = avg_score/len(scores_dict)
+    avg_score = avg_score / len(scores_dict)
     return avg_score
+
 
 if ckpt_manager.latest_checkpoint and FLAGS.continue_from_last_ckpt:
     start_epoch = int(ckpt_manager.latest_checkpoint.split('-')[-1])
@@ -114,10 +116,12 @@ if ckpt_manager.latest_checkpoint and FLAGS.continue_from_last_ckpt:
     except:
         print("No previous scores found")
 
-train_batch_losses_csv = {"step":[],"batch_loss":[]}
-test_batch_losses_csv = {"step":[],"batch_loss":[]}
-train_after_batch_losses_csv = {"step":[],"batch_loss":[]}
-losses_csv = {"epoch":[],"train_loss":[], "train_after_loss":[], "test_loss":[]}
+train_batch_losses_csv = {"step": [], "batch_loss": []}
+test_batch_losses_csv = {"step": [], "batch_loss": []}
+train_after_batch_losses_csv = {"step": [], "batch_loss": []}
+losses_csv = {"epoch": [], "train_loss": [], "train_after_loss": [], "test_loss": []}
+time_csv = {"epoch": [], 'time_taken': [], "scores": []}
+
 
 def get_test_loss():
     global test_batch_losses_csv, losses_csv
@@ -143,6 +147,7 @@ def get_test_loss():
 
     return epoch_loss, batch_losses
 
+
 def get_train_loss(train_generator):
     global train_after_batch_losses_csv, losses_csv
     tf.keras.backend.set_learning_phase(0)
@@ -165,7 +170,6 @@ def get_train_loss(train_generator):
 
 
 train_generator = train_enqueuer.get()
-time_csv = {"epoch":[],'time_taken':[],"scores":[]}
 
 for epoch in range(start_epoch, FLAGS.num_epochs):
     start = time.time()
@@ -181,7 +185,7 @@ for epoch in range(start_epoch, FLAGS.num_epochs):
             times_to_get_batch += 1
         step_time = time.time()
         batch_loss = train_step(img, target)
-        pure_training_time += time.time()-step_time
+        pure_training_time += time.time() - step_time
         total_loss += batch_loss
         step += 1
         train_batch_losses_csv['step'].append(step)
@@ -208,28 +212,27 @@ for epoch in range(start_epoch, FLAGS.num_epochs):
     losses_csv['test_loss'].append(test_epoch_loss.numpy())
     pd.DataFrame(losses_csv).to_csv(os.path.join(FLAGS.ckpt_path, 'losses.csv'), index=False)
     pd.DataFrame(train_batch_losses_csv).to_csv(os.path.join(FLAGS.ckpt_path, 'train_batch_losses.csv'), index=False)
-    pd.DataFrame(train_after_batch_losses_csv).to_csv(os.path.join(FLAGS.ckpt_path, 'train_after_batch_losses.csv'), index=False)
+    pd.DataFrame(train_after_batch_losses_csv).to_csv(os.path.join(FLAGS.ckpt_path, 'train_after_batch_losses.csv'),
+                                                      index=False)
     pd.DataFrame(test_batch_losses_csv).to_csv(os.path.join(FLAGS.ckpt_path, 'test_batch_losses.csv'), index=False)
     ckpt_manager.save()
-    if epoch % 100 == 0:
+    if epoch % FLAGS.epochs_to_evaluate == 0:
         current_avg_score = 0
-        if ((epoch + 1) % 100 == 0):
-            print("Evaluating on test set..")
-            train_enqueuer.stop()
-            current_scores = evaluate_enqueuer(test_enqueuer, test_steps, FLAGS, encoder, decoder, tokenizer_wrapper)
-            time_csv['epoch'].append(epoch+1)
-            time_csv['loss'].append(epoch+1)
-            time_csv['time_taken'].append(pure_training_time)
-            time_csv['scores'].append(current_scores)
-            df = pd.DataFrame(time_csv)
-            df.to_csv(os.path.join(FLAGS.ckpt_path,'time.csv'),index=False)
-            current_avg_score = get_avg_score(current_scores)
-            train_enqueuer.start(workers=FLAGS.generator_workers, max_queue_size=FLAGS.generator_queue_length)
-        if best_test_avg_score ==0 or current_avg_score > best_test_avg_score:
-            ckpt_manager.save()
-            if current_avg_score > best_test_avg_score:
-                print(f"found a new best model and saving the ckpt")
-                best_test_avg_score = current_avg_score
+        print("Evaluating on test set..")
+        train_enqueuer.stop()
+        current_scores = evaluate_enqueuer(test_enqueuer, test_steps, FLAGS, encoder, decoder, tokenizer_wrapper)
+        time_csv['epoch'].append(epoch + 1)
+        time_csv['time_taken'].append(pure_training_time)
+        time_csv['scores'].append(current_scores)
+        df = pd.DataFrame(time_csv)
+        df.to_csv(os.path.join(FLAGS.ckpt_path, 'time.csv'), index=False)
+        current_avg_score = get_avg_score(current_scores)
+        train_enqueuer.start(workers=FLAGS.generator_workers, max_queue_size=FLAGS.generator_queue_length)
+        if best_test_avg_score == 0 or current_avg_score > best_test_avg_score:
+            ckpt_manager.save(fname='best_ckpt')
+            print(f"found a new best model and saving the ckpt")
+            best_test_avg_score = current_avg_score
+
     plt.plot(loss_plot)
     plt.xlabel('Epochs')
     plt.ylabel('Loss')

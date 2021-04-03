@@ -5,21 +5,24 @@ from tokenizer_wrapper import TokenizerWrapper
 import re
 import collections
 from copy import deepcopy
+
 FLAGS = argHandler()
 FLAGS.setDefaults()
 
 df = pd.read_csv('predictions.csv')
-labels =  df['real']
-preds =  df['prediction']
+labels = df['real']
+preds = df['prediction']
 
 tokenizer_wrapper = TokenizerWrapper(FLAGS.all_data_csv, FLAGS.csv_label_columns[0],
                                      FLAGS.max_sequence_length, FLAGS.tokenizer_vocab_size)
+
 
 def tokenize(string):
     """Convert string to lowercase and split into words (ignoring
     punctuation), returning list of words.
     """
     return re.findall(r'\w+', string.lower())
+
 
 def count_ngrams(lines, min_length=3, max_length=3):
     """Iterate through given lines iterator (file object or list of
@@ -44,7 +47,7 @@ def count_ngrams(lines, min_length=3, max_length=3):
         for word in tokenize(line):
             queue.append(word)
             if len(queue) >= max_length:
-                    add_queue()
+                add_queue()
 
     # Make sure we get the n-grams at the tail end of the queue
     while len(queue) > min_length:
@@ -62,59 +65,57 @@ def print_most_frequent(ngrams, num=10):
             print('{0}: {1}'.format(' '.join(gram), count))
         print('')
 
-def filter_words(word_list,filters):
+
+def filter_words(word_list, filters):
     filter_len = len(filters)
     filtered = []
     i = 0
     counter = 0
-    while(i<len(word_list)):
-        if tuple(word_list[i:i+filter_len]) == filters:
-            if counter >=1:
-                i+=filter_len
+    while (i < len(word_list)):
+        if tuple(word_list[i:i + filter_len]) == filters:
+            if counter >= 1:
+                i += filter_len
             else:
-                filtered.extend(word_list[i:i+filter_len])
+                filtered.extend(word_list[i:i + filter_len])
                 counter = 1
-                i +=filter_len
+                i += filter_len
         else:
             filtered.append(word_list[i])
             i += 1
     return filtered
 
 
-def remove_ngrams(word_list,ngrams,n_filter=2):
+def remove_ngrams(word_list, ngrams, n_filter=2):
     filtered = deepcopy(word_list)
-    for n in sorted(ngrams,reverse=True):
+    for n in sorted(ngrams, reverse=True):
         for gram, count in ngrams[n].most_common(10):
-            if count>=n_filter:
-                filtered = filter_words(filtered,gram)
+            if count >= n_filter:
+                filtered = filter_words(filtered, gram)
     return filtered
-# str = 'the end is nigh. mesh keda. the end is nigh'
-# grams = count_ngrams([str])
-# print_most_frequent(grams)
-#
-# fu2 = remove_ngrams(tokenize(str),grams)
+
+
 hypothesis = []
 references = []
 filtered_pred = []
 for i in range(len(preds)):
     label = labels[i]
     pred = preds[i]
-    pred = pred.replace('xxxx','')
+    pred = pred.replace('xxxx', '')
     # label = label.replace('xxxx','')
-    pred = pred.replace('end','')
-    pred = pred.replace('"','')
-    pred = pred.replace('  ',' ')
+    pred = pred.replace('end', '')
+    pred = pred.replace('"', '')
+    pred = pred.replace('  ', ' ')
     #
     xx = pred.split('.')
-    x = [z for z in xx if len(z.split(" "))>1]
+    x = [z for z in xx if len(z.split(" ")) > 1]
     # print(x[-1])
     nwq = x
     nwq = [x[0]]
-    for i in range(1,len(x)):
+    for i in range(1, len(x)):
         if x[i] in nwq:
             continue
         nwq.append(x[i])
-    if len(nwq)>1:
+    if len(nwq) > 1:
         if len(nwq[-1].split()) <= 2:
             pred = '. '.join(nwq[:-1])
         else:
@@ -139,11 +140,5 @@ print("scores: {}".format(scores))
 
 df['prediction'] = filtered_pred
 
-df.to_csv('filtered_preds.csv',index=False)
+df.to_csv('filtered_preds.csv', index=False)
 
-
-# remove " and xxxx from labels
-# try softmax on tags
-# understand length penalty not working
-# bad words ids 12343, 1
-# better ending criteria

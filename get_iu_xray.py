@@ -1,7 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
 
-
 images_path = './IU-XRay/images'
 reports_path = './IU-XRay/reports'
 
