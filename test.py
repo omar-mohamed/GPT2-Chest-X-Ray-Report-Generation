@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image
 import json
 import time
-from gpt2_dir.gpt2_model import TFGPT2LMHeadModel
+from gpt2.gpt2_model import TFGPT2LMHeadModel
 import pandas as pd
 from tqdm import tqdm
 

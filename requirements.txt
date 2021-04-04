@@ -58,3 +58,4 @@ Werkzeug==0.15.5
 wrapt==1.11.2
 xdg==4.0.1
 transformers==2.5.0
+git+https://github.com/Maluuba/nlg-eval.git@master

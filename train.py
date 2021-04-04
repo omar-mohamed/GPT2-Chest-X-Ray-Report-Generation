@@ -9,7 +9,7 @@ from utility import get_optimizer, get_enqueuer
 import os
 import json
 from augmenter import augmenter
-from gpt2_dir.gpt2_model import TFGPT2LMHeadModel
+from gpt2.gpt2_model import TFGPT2LMHeadModel
 from test import evaluate_enqueuer
 import pandas as pd
 

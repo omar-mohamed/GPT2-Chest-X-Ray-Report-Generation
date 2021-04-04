@@ -1,6 +1,6 @@
 from transformers.modeling_tf_gpt2 import TFConv1D, TFMLP, shape_list, TFSharedEmbeddings, get_initializer
 import tensorflow as tf
-from gpt2_dir.pretrained_model import TFGPT2PreTrainedModel
+from gpt2.pretrained_model import TFGPT2PreTrainedModel
 
 
 class TFAttention(tf.keras.layers.Layer):
