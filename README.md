@@ -11,6 +11,11 @@ Model checkpoint [here](https://drive.google.com/drive/folders/1GRT5-aQ7WXN9F7Oz
 ## Sample Predictions
 ![image](https://user-images.githubusercontent.com/6074821/113487044-098b1280-94b6-11eb-93b0-f2bf3202010f.png)
 
+## Installation & Usage
+
+- pip install -r requirements.txt
+- nlg-eval --setup
+- python train.py
 
 ## Related Repositories
 - VSGRU repository [here](https://github.com/omar-mohamed/X-Ray-Report-Generation).
