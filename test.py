@@ -53,9 +53,9 @@ def evaluate_full(FLAGS, encoder, decoder, tokenizer_wrapper, images):
                               visual_features=visual_features,
                               tags_embedding=tags_embeddings, do_sample=False, early_stopping=True)
     end_time = time.time() - start_time
-    print(f"Step time: {end_time}")
+    # print(f"Step time: {end_time}")
     avg_time += end_time
-    print(f"avg Step time: {avg_time / step_n}")
+    # print(f"avg Step time: {avg_time / step_n}")
 
     sentence = tokenizer_wrapper.GPT2_decode(tokens[0])
     sentence = tokenizer_wrapper.filter_special_words(sentence)
