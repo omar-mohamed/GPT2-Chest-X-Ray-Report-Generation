@@ -38,7 +38,7 @@ print(f"Tags Embeddings shape: {tags_embeddings.shape}")
 
 del medical_w2v
 
-encoder = CNN_Encoder('pretrained_models', FLAGS.visual_model_name, FLAGS.visual_model_pop_layers, FLAGS.encoder_layers,
+encoder = CNN_Encoder('pretrained_visual_models', FLAGS.visual_model_name, FLAGS.visual_model_pop_layers, FLAGS.encoder_layers,
                       FLAGS.tags_threshold, tags_embeddings, FLAGS.finetune_visual_model)
 decoder = TFGPT2LMHeadModel.from_pretrained('distilgpt2', from_pt=True, resume_download=True)
 optimizer = get_optimizer(FLAGS.optimizer_type, FLAGS.learning_rate)

@@ -160,7 +160,7 @@ if __name__ == "__main__":
     test_enqueuer, test_steps = get_enqueuer(FLAGS.test_csv, 1, FLAGS, tokenizer_wrapper)
     test_enqueuer.start(workers=1, max_queue_size=8)
 
-    encoder = CNN_Encoder('pretrained_models', FLAGS.visual_model_name, FLAGS.visual_model_pop_layers,
+    encoder = CNN_Encoder('pretrained_visual_models', FLAGS.visual_model_name, FLAGS.visual_model_pop_layers,
                           FLAGS.encoder_layers, FLAGS.tags_threshold)
 
     decoder = TFGPT2LMHeadModel.from_pretrained('distilgpt2', from_pt=True, resume_download=True)
