@@ -12,6 +12,8 @@ from augmenter import augmenter
 from gpt2.gpt2_model import TFGPT2LMHeadModel
 from test import evaluate_enqueuer
 import pandas as pd
+from glob import glob
+import shutil
 
 # tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
 
@@ -38,7 +40,8 @@ print(f"Tags Embeddings shape: {tags_embeddings.shape}")
 
 del medical_w2v
 
-encoder = CNN_Encoder('pretrained_visual_model', FLAGS.visual_model_name, FLAGS.visual_model_pop_layers, FLAGS.encoder_layers,
+encoder = CNN_Encoder('pretrained_visual_model', FLAGS.visual_model_name, FLAGS.visual_model_pop_layers,
+                      FLAGS.encoder_layers,
                       FLAGS.tags_threshold, tags_embeddings, FLAGS.finetune_visual_model)
 decoder = TFGPT2LMHeadModel.from_pretrained('distilgpt2', from_pt=True, resume_download=True)
 optimizer = get_optimizer(FLAGS.optimizer_type, FLAGS.learning_rate)
@@ -83,7 +86,8 @@ ckpt = tf.train.Checkpoint(encoder=encoder,
                            optimizer=optimizer)
 
 try:
-    os.makedirs(FLAGS.ckpt_path)
+    os.makedirs(os.path.join(FLAGS.ckpt_path, 'best_ckpt'))
+
 except:
     print("path already exists")
 
@@ -229,8 +233,10 @@ for epoch in range(start_epoch, FLAGS.num_epochs):
         current_avg_score = get_avg_score(current_scores)
         train_enqueuer.start(workers=FLAGS.generator_workers, max_queue_size=FLAGS.generator_queue_length)
         if best_test_avg_score == 0 or current_avg_score > best_test_avg_score:
-            ckpt_manager.save(fname='best_ckpt')
             print(f"found a new best model and saving the ckpt")
+            for filename in glob.glob(os.path.join(FLAGS.ckpt_path, '*.*')):
+                if os.path.isfile(filename):
+                    shutil.copy(filename, os.path.join(FLAGS.ckpt_path, 'best_ckpt'))
             best_test_avg_score = current_avg_score
 
     plt.plot(loss_plot)
