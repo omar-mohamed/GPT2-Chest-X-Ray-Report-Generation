@@ -86,8 +86,7 @@ ckpt = tf.train.Checkpoint(encoder=encoder,
                            optimizer=optimizer)
 
 try:
-    os.makedirs(FLAGS.ckpt_path)
-
+    os.makedirs(os.path.join(FLAGS.ckpt_path, 'best_ckpt'))
 except:
     print("path already exists")
 
@@ -203,6 +202,13 @@ for epoch in range(start_epoch, FLAGS.num_epochs):
                                                       index=False)
     pd.DataFrame(test_batch_losses_csv).to_csv(os.path.join(FLAGS.ckpt_path, 'test_batch_losses.csv'), index=False)
     ckpt_manager.save()
+
+    plt.plot(loss_plot)
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Loss Plot')
+    plt.savefig(FLAGS.ckpt_path + "/loss.png")
+
     if epoch % FLAGS.epochs_to_evaluate == 0:
         current_avg_score = 0
         print("Evaluating on test set..")
@@ -219,16 +225,11 @@ for epoch in range(start_epoch, FLAGS.num_epochs):
             print(f"found a new best model and saving the ckpt")
             shutil.rmtree(os.path.join(FLAGS.ckpt_path, 'best_ckpt'))
             os.mkdir(os.path.join(FLAGS.ckpt_path, 'best_ckpt'))
-            for filename in glob(os.path.join(FLAGS.ckpt_path, '*.*')):
+            for filename in glob(os.path.join(FLAGS.ckpt_path, '*')):
                 if os.path.isfile(filename):
                     shutil.copy(filename, os.path.join(FLAGS.ckpt_path, 'best_ckpt'))
             best_test_avg_score = current_avg_score
 
-    plt.plot(loss_plot)
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.title('Loss Plot')
-    plt.savefig(FLAGS.ckpt_path + "/loss.png")
 
 train_enqueuer.stop()
 # plt.show()
