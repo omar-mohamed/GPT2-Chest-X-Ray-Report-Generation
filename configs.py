@@ -48,6 +48,8 @@ class argHandler(dict):
                     'where to save the checkpoints. The path will be created if it does not exist. The system saves every epoch by default')
         self.define('continue_from_last_ckpt', True,
                     'continue training from last ckpt or not')
+        self.define('calculate_loss_after_epoch', False,
+                    'if True it will calculate the train and test loss by passing over the data again and append it to losses_csv')
         self.define('learning_rate', 1e-4, 'The optimizer learning rate')
         self.define('optimizer_type', 'Adam', 'Choose from (Adam, SGD, RMSprop, Adagrad, Adadelta, Adamax, Nadam)')
         self.define('tags', tags,

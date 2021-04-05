@@ -101,8 +101,8 @@ def save_output_prediction(FLAGS, img_name, target_sentence, predicted_sentence)
     plt.close(fig)
 
 
-def evaluate_enqueuer(enqueuer, steps, FLAGS, encoder, decoder, tokenizer_wrapper, name='Test set',
-                      verbose=True, write_json=True, write_images=False, test_mode=False):
+def evaluate_enqueuer(enqueuer, FLAGS, encoder, decoder, tokenizer_wrapper, name='Test set', verbose=True,
+                      write_json=True, write_images=False, test_mode=False):
     tf.keras.backend.set_learning_phase(0)
     hypothesis = []
     references = []
@@ -111,11 +111,8 @@ def evaluate_enqueuer(enqueuer, steps, FLAGS, encoder, decoder, tokenizer_wrappe
     start = time.time()
     csv_dict = {"image_path": [], "real": [], "prediction": []}
     generator = enqueuer.get()
-    for batch in tqdm(list(range(steps))):
-        t = time.time()
+    for batch in tqdm(list(range(generator.steps))):
         images, target, img_path = next(generator)
-
-        # t = time.time()
 
         predicted_sentence = evaluate_full(FLAGS, encoder, decoder, tokenizer_wrapper,
                                            images)
@@ -177,5 +174,4 @@ if __name__ == "__main__":
         start_epoch = int(ckpt_manager.latest_checkpoint.split('-')[-1])
         ckpt.restore(ckpt_manager.latest_checkpoint)
         print("Restored from checkpoint: {}".format(ckpt_manager.latest_checkpoint))
-    evaluate_enqueuer(test_enqueuer, test_steps, FLAGS, encoder, decoder, tokenizer_wrapper, write_images=True,
-                      test_mode=True)
+    evaluate_enqueuer(test_enqueuer, FLAGS, encoder, decoder, tokenizer_wrapper, write_images=True, test_mode=True)

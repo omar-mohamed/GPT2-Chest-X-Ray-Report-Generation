@@ -25,8 +25,8 @@ tokenizer_wrapper = TokenizerWrapper(FLAGS.all_data_csv, FLAGS.csv_label_columns
                                      FLAGS.max_sequence_length, FLAGS.tokenizer_vocab_size)
 
 train_enqueuer, train_steps = get_enqueuer(FLAGS.train_csv, FLAGS.batch_size, FLAGS, tokenizer_wrapper)
-test_enqueuer, test_steps = get_enqueuer(FLAGS.test_csv, 1, FLAGS, tokenizer_wrapper)
-test_enqueuer2, test_steps2 = get_enqueuer(FLAGS.test_csv, FLAGS.batch_size, FLAGS, tokenizer_wrapper)
+test_enqueuer, _ = get_enqueuer(FLAGS.test_csv, 1, FLAGS, tokenizer_wrapper)
+batch_test_enqueuer, _ = get_enqueuer(FLAGS.test_csv, FLAGS.batch_size, FLAGS, tokenizer_wrapper)
 
 train_enqueuer.start(workers=FLAGS.generator_workers, max_queue_size=FLAGS.generator_queue_length)
 
@@ -86,7 +86,7 @@ ckpt = tf.train.Checkpoint(encoder=encoder,
                            optimizer=optimizer)
 
 try:
-    os.makedirs(os.path.join(FLAGS.ckpt_path, 'best_ckpt'))
+    os.makedirs(FLAGS.ckpt_path)
 
 except:
     print("path already exists")
@@ -127,47 +127,26 @@ losses_csv = {"epoch": [], "train_loss": [], "train_after_loss": [], "test_loss"
 time_csv = {"epoch": [], 'time_taken': [], "scores": []}
 
 
-def get_test_loss():
-    global test_batch_losses_csv, losses_csv
+def get_overall_loss(enqueuer, batch_losses_csv):
     tf.keras.backend.set_learning_phase(0)
 
-    test_enqueuer2.start(workers=FLAGS.generator_workers, max_queue_size=FLAGS.generator_queue_length)
-    test_generator = test_enqueuer2.get()
+    if not enqueuer.is_running():
+        enqueuer.start(workers=FLAGS.generator_workers, max_queue_size=FLAGS.generator_queue_length)
+    generator = enqueuer.get()
 
     batch_losses = []
     total_loss = 0
     step = 0
-    for batch in range(test_steps2):
-        img, target, _ = next(test_generator)
+    for batch in range(generator.steps):
+        img, target, _ = next(generator)
         batch_loss = train_step(img, target, True)
-        test_batch_losses_csv['step'].append(step)
-        test_batch_losses_csv['batch_loss'].append(batch_loss.numpy())
+        batch_losses_csv['step'].append(step)
+        batch_losses_csv['batch_loss'].append(batch_loss.numpy())
         total_loss += batch_loss
         batch_losses.append(batch_loss)
         step += 1
-    epoch_loss = total_loss / test_steps2
-    test_enqueuer2.stop()
-    tf.keras.backend.set_learning_phase(1)
-
-    return epoch_loss, batch_losses
-
-
-def get_train_loss(train_generator):
-    global train_after_batch_losses_csv, losses_csv
-    tf.keras.backend.set_learning_phase(0)
-
-    batch_losses = []
-    total_loss = 0
-    step = 0
-    for batch in range(train_steps):
-        img, target, _ = next(train_generator)
-        batch_loss = train_step(img, target, True)
-        train_after_batch_losses_csv['step'].append(step)
-        train_after_batch_losses_csv['batch_loss'].append(batch_loss.numpy())
-        total_loss += batch_loss
-        batch_losses.append(batch_loss)
-        step += 1
-    epoch_loss = total_loss / train_steps
+    epoch_loss = total_loss / generator.steps
+    enqueuer.stop()
     tf.keras.backend.set_learning_phase(1)
 
     return epoch_loss, batch_losses
@@ -207,13 +186,17 @@ for epoch in range(start_epoch, FLAGS.num_epochs):
                                         total_loss))
     print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
     print('Batches that took long: {}'.format(times_to_get_batch))
-    test_epoch_loss, _ = get_test_loss()
-    train_epoch_loss, _ = get_train_loss(train_generator)
-
+    if FLAGS.calculate_loss_after_epoch:
+        test_epoch_loss, _ = get_overall_loss(batch_test_enqueuer, test_batch_losses_csv)
+        train_epoch_loss, _ = get_overall_loss(train_enqueuer, train_after_batch_losses_csv)
+        losses_csv['train_after_loss'].append(train_epoch_loss.numpy())
+        losses_csv['test_loss'].append(test_epoch_loss.numpy())
+    else:
+        losses_csv['train_after_loss'].append('-')
+        losses_csv['test_loss'].append('-')
     losses_csv["epoch"].append(epoch + 1)
     losses_csv['train_loss'].append(total_loss)
-    losses_csv['train_after_loss'].append(train_epoch_loss.numpy())
-    losses_csv['test_loss'].append(test_epoch_loss.numpy())
+
     pd.DataFrame(losses_csv).to_csv(os.path.join(FLAGS.ckpt_path, 'losses.csv'), index=False)
     pd.DataFrame(train_batch_losses_csv).to_csv(os.path.join(FLAGS.ckpt_path, 'train_batch_losses.csv'), index=False)
     pd.DataFrame(train_after_batch_losses_csv).to_csv(os.path.join(FLAGS.ckpt_path, 'train_after_batch_losses.csv'),
@@ -224,7 +207,7 @@ for epoch in range(start_epoch, FLAGS.num_epochs):
         current_avg_score = 0
         print("Evaluating on test set..")
         train_enqueuer.stop()
-        current_scores = evaluate_enqueuer(test_enqueuer, test_steps, FLAGS, encoder, decoder, tokenizer_wrapper)
+        current_scores = evaluate_enqueuer(test_enqueuer, FLAGS, encoder, decoder, tokenizer_wrapper)
         time_csv['epoch'].append(epoch + 1)
         time_csv['time_taken'].append(pure_training_time)
         time_csv['scores'].append(current_scores)
@@ -234,7 +217,9 @@ for epoch in range(start_epoch, FLAGS.num_epochs):
         train_enqueuer.start(workers=FLAGS.generator_workers, max_queue_size=FLAGS.generator_queue_length)
         if best_test_avg_score == 0 or current_avg_score > best_test_avg_score:
             print(f"found a new best model and saving the ckpt")
-            for filename in glob.glob(os.path.join(FLAGS.ckpt_path, '*.*')):
+            shutil.rmtree(os.path.join(FLAGS.ckpt_path, 'best_ckpt'))
+            os.mkdir(os.path.join(FLAGS.ckpt_path, 'best_ckpt'))
+            for filename in glob(os.path.join(FLAGS.ckpt_path, '*.*')):
                 if os.path.isfile(filename):
                     shutil.copy(filename, os.path.join(FLAGS.ckpt_path, 'best_ckpt'))
             best_test_avg_score = current_avg_score
