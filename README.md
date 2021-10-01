@@ -15,6 +15,7 @@ Model checkpoint [here](https://drive.google.com/drive/folders/1GRT5-aQ7WXN9F7Oz
 
 - pip install -r requirements.txt
 - nlg-eval --setup
+- pyton get_iu_xray.py (to download the dataset)
 - python train.py
 
 ## Related Repositories
