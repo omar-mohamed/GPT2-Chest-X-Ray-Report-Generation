@@ -5,7 +5,7 @@ imgaug==0.3.0
 jmespath==0.9.4
 joblib==0.14.1
 kiwisolver==1.1.0
-lxml==4.4.1
+lxml==4.6.3
 Markdown==3.1.1
 matplotlib==3.1.1
 networkx==2.3
