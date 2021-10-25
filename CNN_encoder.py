@@ -9,14 +9,14 @@ class CNN_Encoder(tf.keras.Model):
     # Since you have already extracted the features and dumped it using pickle
     # This encoder passes those features through a Fully connected layer
     def __init__(self, model_path, model_name, pop_conv_layers, encoder_layers, tags_threshold, tags_embeddings=None,
-                 finetune_visual_model=False):
+                 finetune_visual_model=False, num_tags=105):
         super(CNN_Encoder, self).__init__()
         # shape after fc == (batch_size, 64, embedding_dim)
         if tags_embeddings is not None:
             self.tags_embeddings = tf.Variable(shape=tags_embeddings.shape, initial_value=tags_embeddings,
                                                trainable=False, dtype=tf.float32)
         else:
-            self.tags_embeddings = tf.Variable(shape=(105, 400), initial_value=tf.ones((105, 400)), trainable=False,
+            self.tags_embeddings = tf.Variable(shape=(num_tags, 400), initial_value=tf.ones((num_tags, 400)), trainable=False,
                                                dtype=tf.float32)
         self.encoder_layers = get_layers(encoder_layers, 'relu')
         visual_model = load_model(model_path, model_name)

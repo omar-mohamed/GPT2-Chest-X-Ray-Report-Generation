@@ -101,7 +101,7 @@ def save_output_prediction(FLAGS, img_name, target_sentence, predicted_sentence)
     plt.close(fig)
 
 
-def evaluate_enqueuer(enqueuer, FLAGS, encoder, decoder, tokenizer_wrapper, name='Test set', verbose=True,
+def evaluate_enqueuer(enqueuer, steps, FLAGS, encoder, decoder, tokenizer_wrapper, name='Test set', verbose=True,
                       write_json=True, write_images=False, test_mode=False):
     tf.keras.backend.set_learning_phase(0)
     hypothesis = []
@@ -111,12 +111,10 @@ def evaluate_enqueuer(enqueuer, FLAGS, encoder, decoder, tokenizer_wrapper, name
     start = time.time()
     csv_dict = {"image_path": [], "real": [], "prediction": []}
     generator = enqueuer.get()
-    for batch in tqdm(list(range(generator.steps))):
+    for batch in tqdm(list(range(steps))):
         images, target, img_path = next(generator)
-
         predicted_sentence = evaluate_full(FLAGS, encoder, decoder, tokenizer_wrapper,
                                            images)
-
         csv_dict["prediction"].append(predicted_sentence)
         csv_dict["image_path"].append(os.path.basename(img_path[0]))
         target_sentence = tokenizer_wrapper.GPT2_decode(target[0])
@@ -158,7 +156,7 @@ if __name__ == "__main__":
     test_enqueuer.start(workers=1, max_queue_size=8)
 
     encoder = CNN_Encoder('pretrained_visual_model', FLAGS.visual_model_name, FLAGS.visual_model_pop_layers,
-                          FLAGS.encoder_layers, FLAGS.tags_threshold)
+                          FLAGS.encoder_layers, FLAGS.tags_threshold, num_tags=len(FLAGS.tags))
 
     decoder = TFGPT2LMHeadModel.from_pretrained('distilgpt2', from_pt=True, resume_download=True)
 
@@ -174,4 +172,4 @@ if __name__ == "__main__":
         start_epoch = int(ckpt_manager.latest_checkpoint.split('-')[-1])
         ckpt.restore(ckpt_manager.latest_checkpoint)
         print("Restored from checkpoint: {}".format(ckpt_manager.latest_checkpoint))
-    evaluate_enqueuer(test_enqueuer, FLAGS, encoder, decoder, tokenizer_wrapper, write_images=True, test_mode=True)
+    evaluate_enqueuer(test_enqueuer, test_steps, FLAGS, encoder, decoder, tokenizer_wrapper, write_images=True, test_mode=True)

@@ -25,8 +25,8 @@ tokenizer_wrapper = TokenizerWrapper(FLAGS.all_data_csv, FLAGS.csv_label_columns
                                      FLAGS.max_sequence_length, FLAGS.tokenizer_vocab_size)
 
 train_enqueuer, train_steps = get_enqueuer(FLAGS.train_csv, FLAGS.batch_size, FLAGS, tokenizer_wrapper)
-test_enqueuer, _ = get_enqueuer(FLAGS.test_csv, 1, FLAGS, tokenizer_wrapper)
-batch_test_enqueuer, _ = get_enqueuer(FLAGS.test_csv, FLAGS.batch_size, FLAGS, tokenizer_wrapper)
+test_enqueuer, test_steps = get_enqueuer(FLAGS.test_csv, 1, FLAGS, tokenizer_wrapper)
+batch_test_enqueuer, batch_test_steps = get_enqueuer(FLAGS.test_csv, FLAGS.batch_size, FLAGS, tokenizer_wrapper)
 
 train_enqueuer.start(workers=FLAGS.generator_workers, max_queue_size=FLAGS.generator_queue_length)
 
@@ -42,7 +42,7 @@ del medical_w2v
 
 encoder = CNN_Encoder('pretrained_visual_model', FLAGS.visual_model_name, FLAGS.visual_model_pop_layers,
                       FLAGS.encoder_layers,
-                      FLAGS.tags_threshold, tags_embeddings, FLAGS.finetune_visual_model)
+                      FLAGS.tags_threshold, tags_embeddings, FLAGS.finetune_visual_model, len(FLAGS.tags))
 decoder = TFGPT2LMHeadModel.from_pretrained('distilgpt2', from_pt=True, resume_download=True)
 optimizer = get_optimizer(FLAGS.optimizer_type, FLAGS.learning_rate)
 
@@ -126,7 +126,7 @@ losses_csv = {"epoch": [], "train_loss": [], "train_after_loss": [], "test_loss"
 time_csv = {"epoch": [], 'time_taken': [], "scores": []}
 
 
-def get_overall_loss(enqueuer, batch_losses_csv):
+def get_overall_loss(enqueuer, steps, batch_losses_csv):
     tf.keras.backend.set_learning_phase(0)
 
     if not enqueuer.is_running():
@@ -136,7 +136,7 @@ def get_overall_loss(enqueuer, batch_losses_csv):
     batch_losses = []
     total_loss = 0
     step = 0
-    for batch in range(generator.steps):
+    for batch in range(steps):
         img, target, _ = next(generator)
         batch_loss = train_step(img, target, True)
         batch_losses_csv['step'].append(step)
@@ -186,8 +186,8 @@ for epoch in range(start_epoch, FLAGS.num_epochs):
     print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
     print('Batches that took long: {}'.format(times_to_get_batch))
     if FLAGS.calculate_loss_after_epoch:
-        test_epoch_loss, _ = get_overall_loss(batch_test_enqueuer, test_batch_losses_csv)
-        train_epoch_loss, _ = get_overall_loss(train_enqueuer, train_after_batch_losses_csv)
+        test_epoch_loss, _ = get_overall_loss(batch_test_enqueuer, batch_test_steps, test_batch_losses_csv)
+        train_epoch_loss, _ = get_overall_loss(train_enqueuer, train_steps, train_after_batch_losses_csv)
         losses_csv['train_after_loss'].append(train_epoch_loss.numpy())
         losses_csv['test_loss'].append(test_epoch_loss.numpy())
     else:
@@ -209,11 +209,11 @@ for epoch in range(start_epoch, FLAGS.num_epochs):
     plt.title('Loss Plot')
     plt.savefig(FLAGS.ckpt_path + "/loss.png")
 
-    if epoch % FLAGS.epochs_to_evaluate == 0:
+    if epoch % FLAGS.epochs_to_evaluate == 0 and epoch > 0:
         current_avg_score = 0
         print("Evaluating on test set..")
         train_enqueuer.stop()
-        current_scores = evaluate_enqueuer(test_enqueuer, FLAGS, encoder, decoder, tokenizer_wrapper)
+        current_scores = evaluate_enqueuer(test_enqueuer, test_steps, FLAGS, encoder, decoder, tokenizer_wrapper)
         time_csv['epoch'].append(epoch + 1)
         time_csv['time_taken'].append(pure_training_time)
         time_csv['scores'].append(current_scores)
