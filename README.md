@@ -12,10 +12,10 @@ Model checkpoint [here](https://drive.google.com/drive/folders/1GRT5-aQ7WXN9F7Oz
 ![image](https://user-images.githubusercontent.com/6074821/113487044-098b1280-94b6-11eb-93b0-f2bf3202010f.png)
 
 ## Installation & Usage
-
-- pip install -r requirements.txt
+*The project was tested on a virtual environment of python 3.7, pip 23.2.1, and MacOS*
+- pip install -r full_requirements.txt (or pip install -r requirements.txt if there are errors because of using a different operating system, as requirements.txt only contains the main dependencies and pip will fetch the compatible sub-dependencies, but it will be slower)
 - nlg-eval --setup
-- pyton get_iu_xray.py (to download the dataset)
+- python get_iu_xray.py (to download the dataset)
 - python train.py
 
 ## Related Repositories
