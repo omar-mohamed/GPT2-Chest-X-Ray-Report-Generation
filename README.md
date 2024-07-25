@@ -3,6 +3,8 @@ This is the implementation of the CDGPT2 model mentioned in our paper 'Automated
 
 Paper link [here](https://doi.org/10.1016/j.imu.2021.100557).
 
+Thesis link [here](https://drive.google.com/file/d/1_FJdRVs5Saoqep6Gz40d_0nLsLbAgMeI/view?usp=drive_link).
+
 We automatically generate full radiology reports given chest X-ray images from the IU-X-Ray dataset by conditioning a pre-trained GPT2 model on the visual and semantic features of the image.
 
 Model checkpoint [here](https://drive.google.com/drive/folders/1GRT5-aQ7WXN9F7OzDjl3aHLGERT63sIh?usp=sharing).
